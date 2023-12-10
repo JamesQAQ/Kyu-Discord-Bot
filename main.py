@@ -3,6 +3,7 @@ import asyncio
 from gtts import gTTS
 import logging
 import os
+import re
 import sys
 import time
 from typing import List, Optional
@@ -100,6 +101,12 @@ class KyuDiscordBot(discord.Client):
 
   async def _Speech(self, voice_channel, text: str):
     audio_filename = os.path.join('sounds', f'{int(time.time() * 1000000)}.mp3')
+
+    # Process Discord Emojis to be without ID number.
+    matches = re.finditer(r'<:(.*?):[0-9]+>', text)
+    for match in matches:
+      text = text.replace(match.group(0), f' {match.group(1)} ')
+    logging.info(f'Processed text: {text}')
 
     # Wait until the previous one is played.
     while voice_channel.is_playing():

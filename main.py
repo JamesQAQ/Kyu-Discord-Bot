@@ -95,9 +95,8 @@ class KyuDiscordBot(discord.Client):
           await voice_client.disconnect()
         await message.author.voice.channel.connect()
     if commands[0] == 'voice_kick':
-      if message.author.voice and message.author.voice.channel:
-        if voice_client:
-          await voice_client.disconnect()
+      if voice_client:
+        await voice_client.disconnect()
 
   async def _Speech(self, voice_channel, text: str):
     audio_filename = os.path.join('sounds', f'{int(time.time() * 1000000)}.mp3')

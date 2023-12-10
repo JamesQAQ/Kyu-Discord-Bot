@@ -96,7 +96,7 @@ class KyuDiscordBot(discord.Client):
           await voice_client.disconnect()
 
   async def _Speech(self, voice_channel, text: str):
-    audio_filename = f'{int(time.time())}.mp3'
+    audio_filename = os.path.join('sounds', f'{int(time.time() * 1000000)}.mp3')
 
     # Wait until the previous one is played.
     while voice_channel.is_playing():

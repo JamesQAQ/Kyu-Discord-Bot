@@ -59,7 +59,10 @@ class KyuDiscordBot(discord.Client):
       if before.channel.id == voice_client.channel.id:
         await self._Speech(
             voice_client, f'{member.display_name}{TEXT_LEAVE_VOICE_CHANNEL}')
-    elif before.channel is not None and after.channel is not None:
+    elif (
+        before.channel is not None
+        and after.channel is not None
+        and before.channel.id != after.channel.id):
       logging.info(
           '%s moved from %s to %s.',
           member.display_name,

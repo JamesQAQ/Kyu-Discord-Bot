@@ -34,6 +34,12 @@ class KyuDiscordBot(discord.Client):
       commands = commands[1:]
       await self._HandleCommand(message, commands)
 
+      if commands[0] == 'say':
+        text = ' '.join(commands[1:])
+        voice_client = discord.utils.get(self.voice_clients, guild=message.guild)
+        if voice_client:
+          await self._Speech(voice_client, text)
+
   async def on_voice_state_update(
       self, member: discord.Member,
       before: discord.VoiceState,

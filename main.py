@@ -10,7 +10,7 @@ from typing import List, Optional
 
 import discord
 
-from bot_token import TOKEN
+from bot_token import DEV_TOKEN, PROD_TOKEN
 from settings import AUTO_REPLY
 
 
@@ -124,7 +124,7 @@ def Main(args: argparse.Namespace):
   intents.voice_states = True
 
   bot = KyuDiscordBot(intents=intents)
-  bot.run(TOKEN)
+  bot.run(PROD_TOKEN if args.prod else DEV_TOKEN)
 
 
 if __name__ == '__main__':
@@ -135,4 +135,5 @@ if __name__ == '__main__':
       datefmt='%H:%M:%S')
 
   parser = argparse.ArgumentParser()
+  parser.add_argument('--prod', action='store_true')
   Main(parser.parse_args())

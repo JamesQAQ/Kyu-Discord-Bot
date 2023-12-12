@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from bot_token import DEV_TOKEN, PROD_TOKEN
 from settings import AUTO_REPLY
-from voice_client import VoiceClient
+from voice_client import VoiceClient, Language
 
 
 COMMAND_PREFIX = '!kyu'
@@ -87,6 +87,13 @@ class KyuDiscordBot(discord.Client):
 
     if commands[0] == 'say':
       await self._voice_client.Speech(' '.join(commands[1:]), message.guild)
+
+    if commands[0] == 'say_jp':
+      await self._voice_client.Speech(
+          ' '.join(commands[1:]), message.guild, Language.JAPANESE)
+
+    if commands[0] == 'set_voice':
+      await self._voice_client.SetVoice(commands[1], message.guild)
 
 
 def Main(args: argparse.Namespace):

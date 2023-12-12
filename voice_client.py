@@ -32,6 +32,7 @@ class VoiceClient:
   def __init__(self, discord_client: discord.Client):
     self._discord_client = discord_client
     self._speaker = 'gtts'
+    self._length_scale = 1
 
   async def MemberEnterVoiceChannel(self, member: discord.Member):
     text = TEXT_ENTER_VOICE_CHANNEL
@@ -54,6 +55,9 @@ class VoiceClient:
       self._speaker = speaker
       if speaker != 'gtts':
         await self.Speech(VITS_SET_UP_TEXT, guild, Language.JAPANESE)
+
+  def SetSpeed(self, length_scale: float):
+    self._length_scale = length_scale
 
   async def Speech(
       self, text: str, guild: discord.Guild, lang: Language = Language.DEFAULT):
@@ -110,6 +114,8 @@ class VoiceClient:
         audio_filename,
         '--text',
         text,
+        '--length_scale',
+        str(self._length_scale),
     ]
     subprocess.run(commands, check=False)
     return os.path.join('output', 'vits', f'{audio_filename}.wav')

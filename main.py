@@ -95,6 +95,9 @@ class KyuDiscordBot(discord.Client):
     if commands[0] == 'set_voice':
       await self._voice_client.SetVoice(commands[1], message.guild)
 
+    if commands[0] == 'set_speed':
+      self._voice_client.SetSpeed(float(commands[1]))
+
 
 def Main(args: argparse.Namespace):
   intents = discord.Intents.default()

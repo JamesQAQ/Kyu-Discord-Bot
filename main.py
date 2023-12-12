@@ -1,29 +1,23 @@
 import argparse
-import asyncio
-from gtts import gTTS
+import discord
 import logging
 import os
-import re
 import sys
-import time
 from typing import List, Optional
-
-import discord
 
 from bot_token import DEV_TOKEN, PROD_TOKEN
 from settings import AUTO_REPLY
+from voice_client import VoiceClient
 
 
 COMMAND_PREFIX = '!kyu'
-GTTS_LANGUAGE = 'zh-TW'
-TEXT_ENTER_VOICE_CHANNEL = '進入頻道'
-TEXT_LEAVE_VOICE_CHANNEL = '離開頻道'
 
 
 class KyuDiscordBot(discord.Client):
 
   async def on_ready(self):
     logging.info(f'Logged on as {self.user}!')
+    self._voice_client = VoiceClient(self)
 
   async def on_message(self, message: discord.Message):
     if self.user == message.author:
@@ -34,12 +28,6 @@ class KyuDiscordBot(discord.Client):
     if commands[0] == COMMAND_PREFIX:
       commands = commands[1:]
       await self._HandleCommand(message, commands)
-
-      if commands[0] == 'say':
-        text = ' '.join(commands[1:])
-        voice_client = discord.utils.get(self.voice_clients, guild=message.guild)
-        if voice_client:
-          await self._Speech(voice_client, text)
 
   async def on_voice_state_update(
       self, member: discord.Member,
@@ -53,13 +41,13 @@ class KyuDiscordBot(discord.Client):
     if before.channel is None and after.channel is not None:
       logging.info('%s entered %s.', member.display_name, after.channel.name)
       if after.channel.id == voice_client.channel.id:
-        await self._Speech(
-            voice_client, f'{member.display_name}{TEXT_ENTER_VOICE_CHANNEL}')
+        await self._voice_client.MemberEnterVoiceChannel(member)
+
     elif before.channel is not None and after.channel is None:
       logging.info('%s left %s.', member.display_name, before.channel.name)
       if before.channel.id == voice_client.channel.id:
-        await self._Speech(
-            voice_client, f'{member.display_name}{TEXT_LEAVE_VOICE_CHANNEL}')
+        await self._voice_client.MemberLeaveVoiceChannel(member)
+
     elif (
         before.channel is not None
         and after.channel is not None
@@ -70,16 +58,14 @@ class KyuDiscordBot(discord.Client):
           before.channel.name,
           after.channel.name)
       if before.channel.id == voice_client.channel.id:
-        await self._Speech(
-            voice_client, f'{member.display_name}{TEXT_LEAVE_VOICE_CHANNEL}')
+        await self._voice_client.MemberLeaveVoiceChannel(member)
       if after.channel.id == voice_client.channel.id:
-        await self._Speech(
-            voice_client, f'{member.display_name}{TEXT_ENTER_VOICE_CHANNEL}')
+        await self._voice_client.MemberEnterVoiceChannel(member)
 
   async def _HandleCommand(self, message: discord.Message, commands: List[str]):
     logging.info('Received commands: %s', commands)
-    if commands[0] in AUTO_REPLY:
-      reply = AUTO_REPLY[commands[0]]
+    if commands[0] == 'post':
+      reply = AUTO_REPLY[commands[1]]
       content = reply.get('content', '')
       if 'file' in reply:
         with open(reply['file'], 'rb') as f:
@@ -88,34 +74,19 @@ class KyuDiscordBot(discord.Client):
       else:
         await message.channel.send(content)
 
-    voice_client = discord.utils.get(self.voice_clients, guild=message.guild)
+    discord_voice_client = self._voice_client.GetVoiceClient(message.guild)
     if commands[0] == 'voice_join':
       if message.author.voice and message.author.voice.channel:
-        if voice_client:
-          await voice_client.disconnect()
+        if discord_voice_client:
+          await discord_voice_client.disconnect()
         await message.author.voice.channel.connect()
+
     if commands[0] == 'voice_kick':
-      if voice_client:
-        await voice_client.disconnect()
+      if discord_voice_client:
+        await discord_voice_client.disconnect()
 
-  async def _Speech(self, voice_channel, text: str):
-    audio_filename = os.path.join('sounds', f'{int(time.time() * 1000000)}.mp3')
-
-    # Process Discord Emojis to be without ID number.
-    matches = re.finditer(r'<:(.*?):[0-9]+>', text)
-    for match in matches:
-      text = text.replace(match.group(0), f' {match.group(1)} ')
-    logging.info(f'Processed text: {text}')
-
-    # Wait until the previous one is played.
-    while voice_channel.is_playing():
-      await asyncio.sleep(1)
-
-    gTTS(text, lang=GTTS_LANGUAGE).save(audio_filename)
-    voice_channel.play(discord.FFmpegPCMAudio(audio_filename))
-    while voice_channel.is_playing():
-      await asyncio.sleep(1)
-    os.remove(audio_filename)
+    if commands[0] == 'say':
+      await self._voice_client.Speech(' '.join(commands[1:]), message.guild)
 
 
 def Main(args: argparse.Namespace):

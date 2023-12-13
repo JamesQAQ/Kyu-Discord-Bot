@@ -67,12 +67,12 @@ class KyuDiscordBot(discord.Client):
     if commands[0] == 'post':
       reply = AUTO_REPLY[commands[1]]
       content = reply.get('content', '')
+      discord_file = None
       if 'file' in reply:
         with open(reply['file'], 'rb') as f:
           discord_file = discord.File(f)
-        await message.channel.send(content, file=discord_file)
-      else:
-        await message.channel.send(content)
+      await message.channel.send(content, file=discord_file)
+      return
 
     discord_voice_client = self._voice_client.GetVoiceClient(message.guild)
     if commands[0] == 'voice_join':
@@ -80,23 +80,31 @@ class KyuDiscordBot(discord.Client):
         if discord_voice_client:
           await discord_voice_client.disconnect()
         await message.author.voice.channel.connect()
+        await message.channel.send(
+            f'Connected to the voice channel `{message.channel.name}`.')
 
-    if commands[0] == 'voice_kick':
+    elif commands[0] == 'voice_kick':
       if discord_voice_client:
         await discord_voice_client.disconnect()
+        await message.channel.send(
+            f'Disconnected from the voice channel `{message.channel.name}`.')
 
-    if commands[0] == 'say':
+    elif commands[0] == 'say':
       await self._voice_client.Speech(' '.join(commands[1:]), message.guild)
 
-    if commands[0] == 'say_jp':
+    elif commands[0] == 'say_jp':
       await self._voice_client.Speech(
           ' '.join(commands[1:]), message.guild, Language.JAPANESE)
 
-    if commands[0] == 'set_voice':
-      await self._voice_client.SetVoice(commands[1], message.guild)
+    elif commands[0] == 'set_voice':
+      await self._voice_client.SetVoice(
+          commands[1], message.guild, message.channel)
 
-    if commands[0] == 'set_speed':
-      self._voice_client.SetSpeed(float(commands[1]))
+    elif commands[0] == 'set_speed':
+      await self._voice_client.SetSpeed(commands[1], message.channel)
+
+    else:
+      await message.channel.send(f'Unsupported command: `{commands[0]}`.')
 
 
 def Main(args: argparse.Namespace):

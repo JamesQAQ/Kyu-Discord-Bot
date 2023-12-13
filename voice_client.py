@@ -31,13 +31,13 @@ class VoiceClient:
 
   def __init__(self, discord_client: discord.Client):
     self._discord_client = discord_client
-    self._speaker = 'gtts'
+    self._voice_name = 'gtts'
     self._length_scale = 1
 
   async def MemberEnterVoiceChannel(self, member: discord.Member):
     text = TEXT_ENTER_VOICE_CHANNEL
     lang = Language.DEFAULT
-    if self._speaker != 'gtts':
+    if self._voice_name != 'gtts':
       text = TEXT_ENTER_VOICE_CHANNEL_JP
       lang = Language.JAPANESE
     await self.Speech(f'{member.display_name}{text}', member.guild, lang)
@@ -45,19 +45,38 @@ class VoiceClient:
   async def MemberLeaveVoiceChannel(self, member: discord.Member):
     text = TEXT_LEAVE_VOICE_CHANNEL
     lang = Language.DEFAULT
-    if self._speaker != 'gtts':
+    if self._voice_name != 'gtts':
       text = TEXT_LEAVE_VOICE_CHANNEL_JP
       lang = Language.JAPANESE
     await self.Speech(f'{member.display_name}{text}', member.guild, lang)
 
-  async def SetVoice(self, speaker: str, guild: discord.Guild):
-    if speaker == 'gtts' or speaker in VITS_SETTING:
-      self._speaker = speaker
-      if speaker != 'gtts':
+  async def SetVoice(
+      self, voice_name: str,
+      guild: discord.Guild,
+      channel: discord.TextChannel):
+    if voice_name == 'gtts' or voice_name in VITS_SETTING:
+      self._voice_name = voice_name
+      if voice_name == 'gtts':
+        await channel.send('Set voice with `Google Text-to-Speech`')
+      else:
+        discord_file = None
+        if 'image_path' in VITS_SETTING[voice_name]:
+          with open(VITS_SETTING[voice_name]['image_path'], 'rb') as f:
+            discord_file = discord.File(f)
+        await channel.send(
+          f'Set voice with `{voice_name}`.\n'
+              + VITS_SETTING[voice_name].get('description', ''),
+          file=discord_file)
         await self.Speech(VITS_SET_UP_TEXT, guild, Language.JAPANESE)
+    else:
+      await channel.send(f'Unrecognized voice name: `{voice_name}`.')
 
-  def SetSpeed(self, length_scale: float):
-    self._length_scale = length_scale
+  async def SetSpeed(self, length_scale_str: str, channel: discord.TextChannel):
+    try:
+      self._length_scale = float(length_scale_str)
+      await channel.send(f'Set speed(length_scale) with `{self._length_scale}`.')
+    except ValueError as e:
+      await channel.send(f'ValueError: {str(e)}')
 
   async def Speech(
       self, text: str, guild: discord.Guild, lang: Language = Language.DEFAULT):
@@ -84,9 +103,9 @@ class VoiceClient:
     return text
 
   def _GenerateAudioFile(self, text: str, lang: Language) -> str:
-    if self._speaker == 'gtts':
+    if self._voice_name == 'gtts':
       return self._GenerateAudioFileByGtts(text, lang)
-    return self._GenerateAudioFileByVits(self._speaker, text, lang)
+    return self._GenerateAudioFileByVits(self._voice_name, text, lang)
 
   def _GenerateAudioFileByGtts(self, text: str, lang: Language) -> str:
     audio_filename = os.path.join('output', f'{int(time.time() * 1000000)}.mp3')
@@ -95,7 +114,7 @@ class VoiceClient:
     return audio_filename
 
   def _GenerateAudioFileByVits(
-      self, speaker: str, text: str, lang: Language) -> str:
+      self, voice_name: str, text: str, lang: Language) -> str:
     audio_filename = f'{int(time.time() * 1000000)}'
     lang_value = VITS_LANGUAGE if lang == Language.DEFAULT else VITS_LANGUAGE_JP
     commands = [
@@ -103,13 +122,13 @@ class VoiceClient:
             '..', 'VITS-fast-fine-tuning', 'venv', 'Scripts', 'python'),
         os.path.join('..', 'VITS-fast-fine-tuning', 'cmd_inference.py'),
         '--config_path',
-        VITS_SETTING[speaker]['config_path'],
+        VITS_SETTING[voice_name]['config_path'],
         '--model_path',
-        VITS_SETTING[speaker]['model_path'],
+        VITS_SETTING[voice_name]['model_path'],
         '--language',
         lang_value,
         '--spk',
-        speaker,
+        VITS_SETTING[voice_name]['speaker'],
         '--output_name',
         audio_filename,
         '--text',

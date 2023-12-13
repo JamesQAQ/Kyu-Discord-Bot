@@ -77,17 +77,19 @@ class KyuDiscordBot(discord.Client):
     discord_voice_client = self._voice_client.GetVoiceClient(message.guild)
     if commands[0] == 'voice_join':
       if message.author.voice and message.author.voice.channel:
+        voice_channel = message.author.voice.channel
         if discord_voice_client:
           await discord_voice_client.disconnect()
-        await message.author.voice.channel.connect()
+        await voice_channel.connect()
         await message.channel.send(
-            f'Connected to the voice channel `{message.channel.name}`.')
+            f'Connected to the voice channel `{voice_channel.name}`.')
 
     elif commands[0] == 'voice_kick':
       if discord_voice_client:
+        voice_channel_name = discord_voice_client.channel.name
         await discord_voice_client.disconnect()
         await message.channel.send(
-            f'Disconnected from the voice channel `{message.channel.name}`.')
+            f'Disconnected from the voice channel `{voice_channel_name}`.')
 
     elif commands[0] == 'say':
       await self._voice_client.Speech(' '.join(commands[1:]), message.guild)

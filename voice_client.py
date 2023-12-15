@@ -5,6 +5,7 @@ from gtts import gTTS
 import logging
 import os
 import re
+import requests
 import subprocess
 import time
 
@@ -17,8 +18,8 @@ VITS_LANGUAGE = '简体中文'
 VITS_LANGUAGE_JP = '日本語'
 TEXT_ENTER_VOICE_CHANNEL = '進入頻道'
 TEXT_LEAVE_VOICE_CHANNEL = '離開頻道'
-TEXT_ENTER_VOICE_CHANNEL_JP = 'チャンネルに入る'
-TEXT_LEAVE_VOICE_CHANNEL_JP = 'チャンネルを退出する'
+TEXT_ENTER_VOICE_CHANNEL_JP = 'がチャンネルに入る'
+TEXT_LEAVE_VOICE_CHANNEL_JP = 'がチャンネルを退出する'
 VITS_SET_UP_TEXT = 'テスト'
 
 
@@ -29,10 +30,12 @@ class Language(enum.Enum):
 
 class VoiceClient:
 
-  def __init__(self, discord_client: discord.Client):
+  def __init__(
+      self, discord_client: discord.Client, web_inference_port: int = 8080):
     self._discord_client = discord_client
     self._voice_name = 'gtts'
     self._length_scale = 1
+    self._web_inference_url = f'http://localhost:{web_inference_port}/'
 
   async def MemberEnterVoiceChannel(self, member: discord.Member):
     text = TEXT_ENTER_VOICE_CHANNEL
@@ -59,6 +62,11 @@ class VoiceClient:
       if voice_name == 'gtts':
         await channel.send('Set voice with `Google Text-to-Speech`')
       else:
+        config_path = VITS_SETTING[voice_name]['config_path']
+        model_path = VITS_SETTING[voice_name]['model_path']
+        speaker = VITS_SETTING[voice_name]['speaker']
+        self._CallWebInference(f'set{config_path},{model_path},{speaker}')
+
         discord_file = None
         if 'image_path' in VITS_SETTING[voice_name]:
           with open(VITS_SETTING[voice_name]['image_path'], 'rb') as f:
@@ -117,24 +125,10 @@ class VoiceClient:
       self, voice_name: str, text: str, lang: Language) -> str:
     audio_filename = f'{int(time.time() * 1000000)}'
     lang_value = VITS_LANGUAGE if lang == Language.DEFAULT else VITS_LANGUAGE_JP
-    commands = [
-        os.path.join(
-            '..', 'VITS-fast-fine-tuning', 'venv', 'Scripts', 'python'),
-        os.path.join('..', 'VITS-fast-fine-tuning', 'cmd_inference.py'),
-        '--config_path',
-        VITS_SETTING[voice_name]['config_path'],
-        '--model_path',
-        VITS_SETTING[voice_name]['model_path'],
-        '--language',
-        lang_value,
-        '--spk',
-        VITS_SETTING[voice_name]['speaker'],
-        '--output_name',
-        audio_filename,
-        '--text',
-        text,
-        '--length_scale',
-        str(self._length_scale),
-    ]
-    subprocess.run(commands, check=False)
-    return os.path.join('output', 'vits', f'{audio_filename}.wav')
+    audio_path = os.path.join('output', 'vits', f'{audio_filename}.wav')
+    self._CallWebInference(
+        f'generate{lang_value},{audio_filename},{self._length_scale},{text}')
+    return audio_path
+
+  def _CallWebInference(self, input_data: str):
+    requests.post(self._web_inference_url, data=input_data.encode())

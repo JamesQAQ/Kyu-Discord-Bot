@@ -1,5 +1,6 @@
 import argparse
 import discord
+from discord.ext import commands
 import logging
 import os
 import sys
@@ -13,7 +14,13 @@ from voice_client import VoiceClient, Language
 COMMAND_PREFIX = '!kyu'
 
 
-class KyuDiscordBot(discord.Client):
+class KyuDiscordBot(commands.Bot):
+
+  def __init__(self):
+    intents = discord.Intents.default()
+    intents.message_content = True
+    intents.voice_states = True
+    super().__init__(COMMAND_PREFIX, intents=intents)
 
   async def on_ready(self):
     logging.info(f'Logged on as {self.user}!')
@@ -98,6 +105,10 @@ class KyuDiscordBot(discord.Client):
       await self._voice_client.Speech(
           ' '.join(commands[1:]), message.guild, Language.JAPANESE)
 
+    elif commands[0] == 'say_en':
+      await self._voice_client.Speech(
+          ' '.join(commands[1:]), message.guild, Language.ENGLISH)
+
     elif commands[0] == 'set_voice':
       await self._voice_client.SetVoice(
           commands[1], message.guild, message.channel)
@@ -110,12 +121,7 @@ class KyuDiscordBot(discord.Client):
 
 
 def Main(args: argparse.Namespace):
-  intents = discord.Intents.default()
-  intents.message_content = True
-  intents.voice_states = True
-
-  bot = KyuDiscordBot(intents=intents)
-  bot.run(PROD_TOKEN if args.prod else DEV_TOKEN)
+  KyuDiscordBot().run(PROD_TOKEN if args.prod else DEV_TOKEN)
 
 
 if __name__ == '__main__':

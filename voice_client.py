@@ -14,8 +14,10 @@ from settings import VITS_SETTING
 
 GTTS_LANGUAGE = 'zh-TW'
 GTTS_LANGUAGE_JP = 'ja'
+GTTS_LANGUAGE_EN = 'en-US'
 VITS_LANGUAGE = '简体中文'
 VITS_LANGUAGE_JP = '日本語'
+VITS_LANGUAGE_EN = 'English'
 TEXT_ENTER_VOICE_CHANNEL = '進入頻道'
 TEXT_LEAVE_VOICE_CHANNEL = '離開頻道'
 TEXT_ENTER_VOICE_CHANNEL_JP = 'がチャンネルに入る'
@@ -26,6 +28,7 @@ VITS_SET_UP_TEXT = 'テスト'
 class Language(enum.Enum):
   DEFAULT = 1
   JAPANESE = 2
+  ENGLISH = 3
 
 
 class VoiceClient:
@@ -117,14 +120,22 @@ class VoiceClient:
 
   def _GenerateAudioFileByGtts(self, text: str, lang: Language) -> str:
     audio_filename = os.path.join('output', f'{int(time.time() * 1000000)}.mp3')
-    lang_value = GTTS_LANGUAGE if lang == Language.DEFAULT else GTTS_LANGUAGE_JP
+    lang_value = GTTS_LANGUAGE
+    if lang == Language.JAPANESE:
+      lang_value = GTTS_LANGUAGE_JP
+    if lang == Language.ENGLISH:
+      lang_value = GTTS_LANGUAGE_EN
     gTTS(text, lang=lang_value).save(audio_filename)
     return audio_filename
 
   def _GenerateAudioFileByVits(
       self, voice_name: str, text: str, lang: Language) -> str:
     audio_filename = f'{int(time.time() * 1000000)}'
-    lang_value = VITS_LANGUAGE if lang == Language.DEFAULT else VITS_LANGUAGE_JP
+    lang_value = VITS_LANGUAGE
+    if lang == Language.JAPANESE:
+      lang_value = VITS_LANGUAGE_JP
+    if lang == Language.ENGLISH:
+      lang_value = VITS_LANGUAGE_EN
     audio_path = os.path.join('output', 'vits', f'{audio_filename}.wav')
     self._CallWebInference(
         f'generate{lang_value},{audio_filename},{self._length_scale},{text}')

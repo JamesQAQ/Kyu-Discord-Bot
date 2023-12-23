@@ -107,7 +107,10 @@ class KyuDiscordBot(commands.Bot):
 
     elif commands[0] == 'say_en':
       await self._voice_client.Speech(
-          ' '.join(commands[1:]), message.guild, Language.ENGLISH)
+          ' '.join(commands[1:]),
+          message.guild,
+          Language.ENGLISH,
+          message.channel)
 
     elif commands[0] == 'set_voice':
       await self._voice_client.SetVoice(

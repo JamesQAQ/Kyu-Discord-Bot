@@ -28,5 +28,6 @@ VITS_SETTING = {
         'model_path': _GenerateDefaultModelPath('character'),
         'description': 'A simple description for this model.',
         'image_path': _GenerateDefaultImagePath('character'),
+        'pretrained_model': 'CJE',
     },
 }

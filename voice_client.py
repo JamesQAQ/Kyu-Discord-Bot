@@ -90,7 +90,17 @@ class VoiceClient:
       await channel.send(f'ValueError: {str(e)}')
 
   async def Speech(
-      self, text: str, guild: discord.Guild, lang: Language = Language.DEFAULT):
+      self,
+      text: str,
+      guild: discord.Guild,
+      lang: Language = Language.DEFAULT,
+      channel: discord.TextChannel = None):
+    if self._voice_name != 'gtts':
+      if (lang == Language.ENGLISH
+          and 'E' not in VITS_SETTING[self._voice_name]['pretrained_model']):
+        await channel.send(
+            'Warning: English is not supported for current voice name '
+                + f'`{self._voice_name}`.')
     voice_client = self.GetVoiceClient(guild)
     if voice_client:
       audio_filename = self._GenerateAudioFile(
